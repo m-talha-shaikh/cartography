@@ -17,11 +17,13 @@ from . import utils
 from cartography.config import Config
 # from cartography.util import run_analysis_job
 # from cartography.util import run_cleanup_job
-# from . import network
+from . import network
 from . import compute
+from . import block
+from . import objectStorage
 
 logger = logging.getLogger(__name__)
-Resources = namedtuple('Resources', 'compute iam network')
+Resources = namedtuple('Resources', 'compute iam network block objectStorage')
 
 
 def _sync_one_account(
@@ -42,9 +44,18 @@ def _sync_one_account(
         compute.sync(neo4j_session, resources.compute,
           tenancy_id, region["name"], oci_sync_tag, common_job_parameters
         )
-        # network.sync(neo4j_session, resources.network,
-        #   tenancy_id, region["name"], oci_sync_tag, common_job_parameters
-        # )
+        
+        network.sync(neo4j_session, resources.network,
+          tenancy_id, region["name"], oci_sync_tag, common_job_parameters
+        )
+
+        block.sync(neo4j_session, resources.block,
+          tenancy_id, region["name"], oci_sync_tag, common_job_parameters
+        )
+
+        objectStorage.sync(neo4j_session, resources.objectStorage,
+          tenancy_id, region["name"], oci_sync_tag, common_job_parameters
+        )
 
     # Look into adding once DNS records are implemented.
     # NOTE clean up all DNS records, regardless of which job created them
@@ -112,6 +123,27 @@ def _get_compute_resource(credentials: Dict[str, Any]) -> oci.core.compute_clien
     """
     return oci.core.ComputeClient(credentials)
 
+#will do later
+
+def _get_block_resource(credentials: Dict[str, Any]) -> oci.core.blockstorage_client.BlockstorageClient:
+    """
+    Instantiates a OCI ComputeClient resource object to call the Block Storage API. This is used to pull zone, instance, and
+    networking data. https://docs.cloud.oracle.com/iaas/Content/Compute/Concepts/computeoverview.htm.
+    :param credentials: The OCI Credentials object
+    :return: A BlockStorageClient resource object
+    """
+    return oci.core.BlockstorageClient(credentials)
+
+def _get_objectStorage_resource(credentials: Dict[str, Any]) -> oci.object_storage.ObjectStorageClient:
+    """
+    Instantiates a OCI ComputeClient resource object to call the Block Storage API. This is used to pull zone, instance, and
+    networking data. https://docs.cloud.oracle.com/iaas/Content/Compute/Concepts/computeoverview.htm.
+    :param credentials: The OCI Credentials object
+    :return: A BlockStorageClient resource object
+    """
+    return oci.object_storage.ObjectStorageClient(credentials)
+
+#will do later
 
 def _initialize_resources(credentials: Dict[str, Any]) -> Resources:
     """
@@ -123,6 +155,8 @@ def _initialize_resources(credentials: Dict[str, Any]) -> Resources:
         compute=_get_compute_resource(credentials),
         iam=_get_iam_resource(credentials),
         network=_get_network_resource(credentials),
+        block=_get_block_resource(credentials),
+        objectStorage=_get_objectStorage_resource(credentials),
     )
 
 

@@ -35,6 +35,32 @@ def get_instance_list_data(
     response = oci.pagination.list_call_get_all_results(compute.list_instances, compartment_id=current_tenancy_id)
     return {'Instances': utils.oci_object_to_json(response.data)}
 
+def load_instances(
+    neo4j_session: neo4j.Session,
+    instances: List[Dict[str, Any]],
+    current_oci_tenancy_id: str,
+    oci_update_tag: int,
+) -> None:
+    ingest_instance = """
+    MERGE(inode:OCIInstances{ocid: $OCID})
+    ON CREATE SET inode:OCIInstance, inode.firstseen = timestamp(),
+    inode.createdate =  $CREATE_DATE
+    SET inode.displayname = $DISPLAY_NAME
+    """
+
+
+    for instance in instances:
+        neo4j_session.run(
+            ingest_instance,
+            OCID=instance["id"],
+            COMPARTMENT_ID=instance["compartment-id"],
+            # DESCRIPTION=volume_attachment["description"],
+            DISPLAY_NAME=instance["display-name"],
+            CREATE_DATE=instance["time-created"],
+            # OCI_TENANCY_ID=current_oci_tenancy_id,
+            oci_update_tag=oci_update_tag,
+        )
+
 
 def sync_volume_attachments(
     neo4j_session: neo4j.Session,
@@ -46,8 +72,58 @@ def sync_volume_attachments(
 ) -> None:
     logger.debug("Syncing Volume Attachments for account '%s'.", current_tenancy_id)
     data = get_volume_attachment_list_data(compute, current_tenancy_id)
-    # load_volume_attachments(neo4j_session, data['VolumeAttachments'], current_tenancy_id, oci_update_tag)
+    load_volume_attachments(neo4j_session, data['VolumeAttachments'], current_tenancy_id, oci_update_tag)
     # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+
+def load_volume_attachments(
+    neo4j_session: neo4j.Session,
+    volume_attachments: List[Dict[str, Any]],
+    current_oci_tenancy_id: str,
+    oci_update_tag: int,
+) -> None:
+    ingest_volume_attachment = """
+    MERGE(vnode:OCIVolumeAttachment{ocid: $OCID})
+    ON CREATE SET vnode:OCIVolumeAttachment, vnode.firstseen = timestamp(),
+    vnode.createdate =  $CREATE_DATE
+    SET vnode.displayname = $DISPLAY_NAME
+    """
+
+
+    for volume_attachment in volume_attachments:
+        neo4j_session.run(
+            ingest_volume_attachment,
+            OCID=volume_attachment["id"],
+            COMPARTMENT_ID=volume_attachment["compartment-id"],
+            # DESCRIPTION=volume_attachment["description"],
+            DISPLAY_NAME=volume_attachment["display-name"],
+            CREATE_DATE=volume_attachment["time-created"],
+            # OCI_TENANCY_ID=current_oci_tenancy_id,
+            oci_update_tag=oci_update_tag,
+        )
+
+    # ingest_compartment = """
+    # MERGE (cnode:OCICompartment{ocid: $OCID})
+    # ON CREATE SET cnode:OCICompartment, cnode.firstseen = timestamp(),
+    # cnode.createdate = $CREATE_DATE
+    # SET cnode.name = $NAME, cnode.compartmentid = $COMPARTMENT_ID
+    # WITH cnode
+    # MATCH (aa) WHERE (aa:OCITenancy OR aa:OCICompartment) AND aa.ocid=$COMPARTMENT_ID
+    # MERGE (aa)-[r:OCI_COMPARTMENT]->(cnode)
+    # ON CREATE SET r.firstseen = timestamp()
+    # SET r.lastupdated = $oci_update_tag
+    # """
+
+    # for compartment in compartments:
+    #     neo4j_session.run(
+    #         ingest_compartment,
+    #         OCID=compartment["id"],
+    #         COMPARTMENT_ID=compartment["compartment-id"],
+    #         DESCRIPTION=compartment["description"],
+    #         NAME=compartment["name"],
+    #         CREATE_DATE=compartment["time-created"],
+    #         OCI_TENANCY_ID=current_oci_tenancy_id,
+    #         oci_update_tag=oci_update_tag,
+    #     )
 
 
 def get_volume_attachment_list_data(
