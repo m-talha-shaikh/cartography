@@ -21,9 +21,10 @@ from . import network
 from . import compute
 from . import block
 from . import objectStorage
+from . import database
 
 logger = logging.getLogger(__name__)
-Resources = namedtuple('Resources', 'compute iam network block objectStorage')
+Resources = namedtuple('Resources', 'compute iam network block objectStorage database')
 
 
 def _sync_one_account(
@@ -34,7 +35,7 @@ def _sync_one_account(
     common_job_parameters: Dict[str, Any],
 ) -> None:
     logger.info("Syncing OCI IAM client for OCI Tenancy with ID '%s'.", tenancy_id)
-    iam.sync(neo4j_session, resources.iam, tenancy_id, oci_sync_tag, common_job_parameters)
+    REGIONS = iam.sync(neo4j_session, resources.iam, tenancy_id, oci_sync_tag, common_job_parameters)
 
     regions = utils.get_regions_in_tenancy(neo4j_session, tenancy_id)
     for region in regions:
@@ -54,6 +55,10 @@ def _sync_one_account(
         )
 
         objectStorage.sync(neo4j_session, resources.objectStorage,
+          tenancy_id, region["name"], oci_sync_tag, common_job_parameters, REGIONS
+        )
+
+        database.sync(neo4j_session, resources.database,
           tenancy_id, region["name"], oci_sync_tag, common_job_parameters
         )
 
@@ -143,6 +148,15 @@ def _get_objectStorage_resource(credentials: Dict[str, Any]) -> oci.object_stora
     """
     return oci.object_storage.ObjectStorageClient(credentials)
 
+def _get_database_resource(credentials: Dict[str, Any]) -> oci.database.DatabaseClient:
+    """
+    Instantiates a OCI ComputeClient resource object to call the Block Storage API. This is used to pull zone, instance, and
+    networking data. https://docs.cloud.oracle.com/iaas/Content/Compute/Concepts/computeoverview.htm.
+    :param credentials: The OCI Credentials object
+    :return: A BlockStorageClient resource object
+    """
+    return oci.database.DatabaseClient(credentials)
+
 #will do later
 
 def _initialize_resources(credentials: Dict[str, Any]) -> Resources:
@@ -157,6 +171,7 @@ def _initialize_resources(credentials: Dict[str, Any]) -> Resources:
         network=_get_network_resource(credentials),
         block=_get_block_resource(credentials),
         objectStorage=_get_objectStorage_resource(credentials),
+        database=_get_database_resource(credentials),
     )
 
 

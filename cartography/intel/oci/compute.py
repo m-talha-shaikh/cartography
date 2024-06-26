@@ -23,7 +23,7 @@ def sync_instances(
 ) -> None:
     logger.debug("Syncing Instances for account '%s'.", current_tenancy_id)
     data = get_instance_list_data(compute, current_tenancy_id)
-    # load_instances(neo4j_session, data['Instances'], current_tenancy_id, oci_update_tag)
+    load_instances(neo4j_session, data['Instances'], current_tenancy_id, oci_update_tag)
     # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
@@ -42,10 +42,12 @@ def load_instances(
     oci_update_tag: int,
 ) -> None:
     ingest_instance = """
-    MERGE(inode:OCIInstances{ocid: $OCID})
+    MERGE(inode:OCIInstance{ocid: $OCID})
     ON CREATE SET inode:OCIInstance, inode.firstseen = timestamp(),
     inode.createdate =  $CREATE_DATE
-    SET inode.displayname = $DISPLAY_NAME
+    WITH inode
+    MATCH (aa:OCITenancy{ocid: $OCI_TENANCY_ID})
+    MERGE (aa)-[r:RESOURCE]->(inode)    
     """
 
 
@@ -55,9 +57,8 @@ def load_instances(
             OCID=instance["id"],
             COMPARTMENT_ID=instance["compartment-id"],
             # DESCRIPTION=volume_attachment["description"],
-            DISPLAY_NAME=instance["display-name"],
             CREATE_DATE=instance["time-created"],
-            # OCI_TENANCY_ID=current_oci_tenancy_id,
+            OCI_TENANCY_ID=current_oci_tenancy_id,
             oci_update_tag=oci_update_tag,
         )
 
@@ -86,6 +87,9 @@ def load_volume_attachments(
     ON CREATE SET vnode:OCIVolumeAttachment, vnode.firstseen = timestamp(),
     vnode.createdate =  $CREATE_DATE
     SET vnode.displayname = $DISPLAY_NAME
+    WITH vnode
+    MATCH (aa:OCITenancy{ocid: $OCI_TENANCY_ID})
+    MERGE (aa)-[r:RESOURCE]->(vnode)
     """
 
 
@@ -97,7 +101,7 @@ def load_volume_attachments(
             # DESCRIPTION=volume_attachment["description"],
             DISPLAY_NAME=volume_attachment["display-name"],
             CREATE_DATE=volume_attachment["time-created"],
-            # OCI_TENANCY_ID=current_oci_tenancy_id,
+            OCI_TENANCY_ID=current_oci_tenancy_id,
             oci_update_tag=oci_update_tag,
         )
 

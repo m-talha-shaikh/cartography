@@ -46,13 +46,17 @@ def load_volume_groups(
 ) -> None:
     ingest_volume_group = """
     MERGE(vnode:OCIVolumeGroup {ocid: $OCID})
-    ON CREATE SET vnode:OCIVolumeGroup, vnode.firstseen = timestamp(),
-    vnode.createdate =  $CREATE_DATE
+    ON CREATE SET vnode:OCIVolumeGroup, vnode.firstseen = timestamp()
     SET vnode.displayname = $DISPLAY_NAME
+    WITH vnode
+    MATCH (aa:OCITenancy{ocid: $OCI_TENANCY_ID})
+    MERGE (aa)-[r:RESOURCE]->(vnode)
     """
 
+    
 
     for volume_group in volume_groups:
+
         neo4j_session.run(
             ingest_volume_group,
             OCID=volume_group["id"],
@@ -60,7 +64,7 @@ def load_volume_groups(
             # DESCRIPTION=volume_group["description"],
             DISPLAY_NAME=volume_group["display-name"],
             CREATE_DATE=volume_group["time-created"],
-            # OCI_TENANCY_ID=current_oci_tenancy_id,
+            OCI_TENANCY_ID=current_oci_tenancy_id,
             oci_update_tag=oci_update_tag,
         )
 

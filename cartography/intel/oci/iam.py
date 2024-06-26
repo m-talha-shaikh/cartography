@@ -15,6 +15,7 @@ from cartography.util import run_cleanup_job
 
 logger = logging.getLogger(__name__)
 
+REGIONS = {}
 
 def sync_compartments(
     neo4j_session: neo4j.Session,
@@ -315,10 +316,78 @@ def sync_policies(
         logger.debug(
             "Syncing OCI policies for compartment '%s' in account '%s'.", compartment['ocid'], current_tenancy_id,
         )
-        data = get_policy_list_data(iam, compartment["ocid"])
+
+        #will do later
+        #data = get_policy_list_data(iam, compartment["ocid"])
+        data = get_policy_list_data(iam, current_tenancy_id)
+        #will do later
         if (data["Policies"]):
             load_policies(neo4j_session, data["Policies"], current_tenancy_id, oci_update_tag)
     run_cleanup_job('oci_import_policies_cleanup.json', neo4j_session, common_job_parameters)
+
+
+
+def get_tag_list_data(
+    iam: oci.identity.identity_client.IdentityClient,
+    current_tenancy_id: str,
+) -> Dict[str, List[Dict[str, Any]]]:
+    tag_namespaces_data = oci.pagination.list_call_get_all_results(iam.list_tag_namespaces, current_tenancy_id).data
+    tag_namespaces = []
+
+    tags = []
+
+    for namespace in tag_namespaces_data:
+        tags.append(oci.pagination.list_call_get_all_results(iam.list_tags, namespace.id).data)
+
+    return {'Tags': tags}
+
+
+def load_tags(
+    neo4j_session: neo4j.Session,
+    tags: List[List[Dict[str, Any]]],  # Adjusted parameter to handle 2D array
+    current_tenancy_id: str,
+    oci_update_tag: int,
+) -> None:
+    ingest_tag = """
+    MERGE (gnode:OCITag{ocid: $OCID})
+    ON CREATE SET gnode.firstseen = timestamp(), gnode.createdate = $CREATE_DATE
+    SET gnode.name = $GROUP_NAME, gnode.compartmentid = $COMPARTMENT_ID, gnode.lastupdated = $oci_update_tag,
+    gnode.description = $DESCRIPTION, gnode.name = $NAME
+    WITH gnode
+    MATCH (aa:OCITenancy{ocid: $OCI_TENANCY_ID})
+    MERGE (aa)-[r:RESOURCE]->(gnode)
+    ON CREATE SET r.firstseen = timestamp()
+    SET r.lastupdated = $oci_update_tag
+    """
+
+    flattened_tags = [tag for sublist in tags for tag in sublist]
+
+    for tag in flattened_tags:
+        neo4j_session.run(
+            ingest_tag,
+            OCID=tag.id,
+            CREATE_DATE=str(tag.time_created),  # Adjusted key name to match the provided data structure
+            GROUP_NAME=tag.name,
+            COMPARTMENT_ID=tag.compartment_id,  # Adjusted key name to match the provided data structure
+            DESCRIPTION=tag.description,
+            NAME=tag.name,
+            OCI_TENANCY_ID=current_tenancy_id,
+            oci_update_tag=oci_update_tag,
+        )
+
+
+def sync_tags(
+    neo4j_session: neo4j.Session,
+    iam: oci.identity.identity_client.IdentityClient,
+    current_tenancy_id: str,
+    oci_update_tag: int,
+    common_job_parameters: Dict[str, Any],
+) -> None:
+    logger.debug("Syncing IAM tags for account '%s'.", current_tenancy_id)
+    data = get_tag_list_data(iam, current_tenancy_id)
+    load_tags(neo4j_session, data["Tags"], current_tenancy_id, oci_update_tag)
+    # run_cleanup_job('oci_import_tags_cleanup.json', neo4j_session, common_job_parameters)
+
 
 
 def load_oci_policy_group_reference(
@@ -395,6 +464,7 @@ def sync_oci_policy_references(
                             load_oci_policy_compartment_reference(
                                 neo4j_session, policy["ocid"], compartment['ocid'], tenancy_id, oci_update_tag,
                             )
+                
 
 
 def get_region_subscriptions_list_data(
@@ -440,6 +510,11 @@ def sync_region_subscriptions(
 ) -> None:
     logger.debug("Syncing IAM region subscriptions for account '%s'.", current_tenancy_id)
     data = get_region_subscriptions_list_data(iam, current_tenancy_id)
+
+    global REGIONS
+    for region in data['RegionSubscriptions']:
+        REGIONS[region['region-name']] = region['region-key']
+
     load_region_subscriptions(neo4j_session, data["RegionSubscriptions"], current_tenancy_id, oci_update_tag)
     # run_cleanup_job('oci_import_region_subscriptions_cleanup.json', neo4j_session, common_job_parameters)
 
@@ -457,5 +532,7 @@ def sync(
     sync_group_memberships(neo4j_session, iam, tenancy_id, oci_update_tag, common_job_parameters)
     sync_compartments(neo4j_session, iam, tenancy_id, oci_update_tag, common_job_parameters)
     sync_policies(neo4j_session, iam, tenancy_id, oci_update_tag, common_job_parameters)
+    sync_tags(neo4j_session, iam, tenancy_id, oci_update_tag, common_job_parameters)
     sync_oci_policy_references(neo4j_session, tenancy_id, oci_update_tag, common_job_parameters)
     sync_region_subscriptions(neo4j_session, iam, tenancy_id, oci_update_tag, common_job_parameters)
+    return REGIONS
