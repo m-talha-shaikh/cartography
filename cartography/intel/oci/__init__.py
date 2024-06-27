@@ -16,7 +16,7 @@ from . import organizations
 from . import utils
 from cartography.config import Config
 # from cartography.util import run_analysis_job
-# from cartography.util import run_cleanup_job
+from cartography.util import run_cleanup_job
 from . import network
 from . import compute
 from . import block
@@ -64,7 +64,7 @@ def _sync_one_account(
 
     # Look into adding once DNS records are implemented.
     # NOTE clean up all DNS records, regardless of which job created them
-    # run_cleanup_job('OCI_account_dns_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('OCI_account_dns_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def _sync_multiple_accounts(
@@ -88,10 +88,10 @@ def _sync_multiple_accounts(
     # Look into adding cleanup
     # There may be orphan Users which point outside of known OCI accounts. This job cleans
     # up those nodes after all OCI accounts have been synced.
-    # run_cleanup_job('oci_post_ingestion_principals_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_post_ingestion_principals_cleanup.json', neo4j_session, common_job_parameters)
     # There may be orphan DNS entries that point outside of known OCI zones. This job cleans
     # up those entries after all OCI accounts have been synced.
-    # run_cleanup_job('oci_post_ingestion_dns_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_post_ingestion_dns_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def _change_resources_region(resources: NamedTuple, region: str) -> None:
@@ -111,8 +111,8 @@ def _get_network_resource(credentials: Dict[str, Any]) -> oci.core.virtual_netwo
 
 def _get_iam_resource(credentials: Dict[str, Any]) -> oci.identity.identity_client.IdentityClient:
     """
-    Instantiates a OCI IdentityCleint resource object to call the Identity API. This is used to users,
-     ..., ... and ... data. See https://docs.cloud.oracle.com/iaas/Content/Compute/Concepts/computeoverview.htm.
+    Instantiates a OCI IdentityClient resource object to call the Identity API. This is used to users,
+     ..., ... and ... data. See https://docs.oracle.com/en-us/iaas/Content/Identity/home.htm.
     :param credentials: OCI Credentials object
     :return: A IdentityClient resource object
     """
@@ -122,18 +122,16 @@ def _get_iam_resource(credentials: Dict[str, Any]) -> oci.identity.identity_clie
 def _get_compute_resource(credentials: Dict[str, Any]) -> oci.core.compute_client.ComputeClient:
     """
     Instantiates a OCI ComputeClient resource object to call the Compute API. This is used to pull zone, instance, and
-    networking data. https://docs.cloud.oracle.com/iaas/Content/Compute/Concepts/computeoverview.htm.
+    networking data. https://docs.oracle.com/en-us/iaas/Content/Compute/Concepts/computeoverview.htm.
     :param credentials: The OCI Credentials object
     :return: A ComputeClient resource object
     """
     return oci.core.ComputeClient(credentials)
 
-#will do later
-
 def _get_block_resource(credentials: Dict[str, Any]) -> oci.core.blockstorage_client.BlockstorageClient:
     """
-    Instantiates a OCI ComputeClient resource object to call the Block Storage API. This is used to pull zone, instance, and
-    networking data. https://docs.cloud.oracle.com/iaas/Content/Compute/Concepts/computeoverview.htm.
+    Instantiates a OCI BlockClient resource object to call the Block Volume API. This is used to pull zone, instance, and
+    networking data. https://docs.oracle.com/en-us/iaas/Content/Block/Concepts/overview.htm.
     :param credentials: The OCI Credentials object
     :return: A BlockStorageClient resource object
     """
@@ -141,23 +139,21 @@ def _get_block_resource(credentials: Dict[str, Any]) -> oci.core.blockstorage_cl
 
 def _get_objectStorage_resource(credentials: Dict[str, Any]) -> oci.object_storage.ObjectStorageClient:
     """
-    Instantiates a OCI ComputeClient resource object to call the Block Storage API. This is used to pull zone, instance, and
-    networking data. https://docs.cloud.oracle.com/iaas/Content/Compute/Concepts/computeoverview.htm.
+    Instantiates a OCI ObjectStorageClient resource object to call the Object Storage API. This is used to pull zone, instance, and
+    networking data. https://docs.oracle.com/en-us/iaas/Content/Object/Concepts/objectstorageoverview.htm.
     :param credentials: The OCI Credentials object
-    :return: A BlockStorageClient resource object
+    :return: A ObjectStorageClient resource object
     """
     return oci.object_storage.ObjectStorageClient(credentials)
 
 def _get_database_resource(credentials: Dict[str, Any]) -> oci.database.DatabaseClient:
     """
-    Instantiates a OCI ComputeClient resource object to call the Block Storage API. This is used to pull zone, instance, and
-    networking data. https://docs.cloud.oracle.com/iaas/Content/Compute/Concepts/computeoverview.htm.
+    Instantiates a OCI DatabaseClient resource object to call the Block Databse API. This is used to pull zone, instance, and
+    networking data. https://docs.oracle.com/en-us/iaas/Content/Database/home.htm.
     :param credentials: The OCI Credentials object
-    :return: A BlockStorageClient resource object
+    :return: A DatabaseClient resource object
     """
     return oci.database.DatabaseClient(credentials)
-
-#will do later
 
 def _initialize_resources(credentials: Dict[str, Any]) -> Resources:
     """

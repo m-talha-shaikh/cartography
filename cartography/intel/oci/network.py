@@ -31,7 +31,7 @@ def sync_subnets(
         SUBNET_VCN.append((subnet['id'], subnet['vcn-id']))
 
     load_subnets(neo4j_session, data['Subnets'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_subnet_list_data(
@@ -111,7 +111,7 @@ def sync_vcns(
     logger.debug("Syncing VCNS for account '%s'.", current_tenancy_id)
     data = get_vcn_list_data(network, current_tenancy_id)
     load_vcns(neo4j_session, data['VCNS'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_vcn_list_data(
@@ -176,7 +176,7 @@ def sync_internet_gateways(
     logger.debug("Syncing Internet Gateways for account '%s'.", current_tenancy_id)
     data = get_internet_gateway_list_data(network, current_tenancy_id)
     load_internet_gateways(neo4j_session, data['InternetGateways'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_internet_gateway_list_data(
@@ -226,7 +226,7 @@ def sync_security_lists(
     logger.debug("Syncing Security Lists for account '%s'.", current_tenancy_id)
     data = get_security_list_list_data(network, current_tenancy_id)
     load_security_lists(neo4j_session, data['SecurityLists'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_security_list_list_data(
@@ -279,7 +279,7 @@ def sync_network_security_groups(
       SECURITY_GROUP_VCN.append((security_group['id'], security_group['vcn-id']))
 
     load_network_security_groups(neo4j_session, data['NetworkSecurityGroups'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_network_security_group_list_data(

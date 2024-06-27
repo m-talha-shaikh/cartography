@@ -27,7 +27,7 @@ def sync_volume_groups(
     logger.debug("Syncing Volume Groups for account '%s'.", current_tenancy_id)
     data = get_volume_group_list_data(block, current_tenancy_id)
     load_volume_groups(neo4j_session, data['VolumeGroups'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_volume_group_list_data(
@@ -76,7 +76,7 @@ def sync(
     oci_update_tag: int,
     common_job_parameters: Dict[str, Any]
 ) -> None:
-    logger.info("Syncing Block Storage for account '%s'.", tenancy_id)
+    logger.info("Syncing Block Volume for account '%s'.", tenancy_id)
     sync_volume_groups(neo4j_session, block, tenancy_id, region, oci_update_tag, common_job_parameters)
 
 

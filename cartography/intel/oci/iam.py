@@ -27,7 +27,7 @@ def sync_compartments(
     logger.debug("Syncing IAM compartments for account '%s'.", current_tenancy_id)
     data = get_compartment_list_data(iam, current_tenancy_id)
     load_compartments(neo4j_session, data['Compartments'], current_tenancy_id, oci_update_tag)
-    run_cleanup_job('oci_import_compartments_cleanup.json', neo4j_session, common_job_parameters)
+    #run_cleanup_job('oci_import_compartments_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_compartment_list_data_recurse(
@@ -149,7 +149,7 @@ def sync_users(
     logger.debug("Syncing IAM users for account '%s'.", current_tenancy_id)
     data = get_user_list_data(iam, current_tenancy_id)
     load_users(neo4j_session, data['Users'], current_tenancy_id, oci_update_tag)
-    run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_group_list_data(
@@ -201,7 +201,7 @@ def sync_groups(
     logger.debug("Syncing IAM groups for account '%s'.", current_tenancy_id)
     data = get_group_list_data(iam, current_tenancy_id)
     load_groups(neo4j_session, data["Groups"], current_tenancy_id, oci_update_tag)
-    run_cleanup_job('oci_import_groups_cleanup.json', neo4j_session, common_job_parameters)
+    #run_cleanup_job('oci_import_groups_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_group_membership_data(
@@ -230,11 +230,7 @@ def sync_group_memberships(
         group["ocid"]: get_group_membership_data(iam, group['ocid'], current_tenancy_id) for group in groups
     }
     load_group_memberships(neo4j_session, groups_membership, oci_update_tag)
-    run_cleanup_job(
-        'oci_import_groups_membership_cleanup.json',
-        neo4j_session,
-        common_job_parameters,
-    )
+    #run_cleanup_job('oci_import_groups_membership_cleanup.json',neo4j_session,common_job_parameters,)
 
 
 def load_group_memberships(
@@ -323,7 +319,7 @@ def sync_policies(
         #will do later
         if (data["Policies"]):
             load_policies(neo4j_session, data["Policies"], current_tenancy_id, oci_update_tag)
-    run_cleanup_job('oci_import_policies_cleanup.json', neo4j_session, common_job_parameters)
+    #run_cleanup_job('oci_import_policies_cleanup.json', neo4j_session, common_job_parameters)
 
 
 
@@ -366,9 +362,9 @@ def load_tags(
         neo4j_session.run(
             ingest_tag,
             OCID=tag.id,
-            CREATE_DATE=str(tag.time_created),  # Adjusted key name to match the provided data structure
+            CREATE_DATE=str(tag.time_created),
             GROUP_NAME=tag.name,
-            COMPARTMENT_ID=tag.compartment_id,  # Adjusted key name to match the provided data structure
+            COMPARTMENT_ID=tag.compartment_id,
             DESCRIPTION=tag.description,
             NAME=tag.name,
             OCI_TENANCY_ID=current_tenancy_id,
@@ -386,7 +382,7 @@ def sync_tags(
     logger.debug("Syncing IAM tags for account '%s'.", current_tenancy_id)
     data = get_tag_list_data(iam, current_tenancy_id)
     load_tags(neo4j_session, data["Tags"], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_tags_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_tags_cleanup.json', neo4j_session, common_job_parameters)
 
 
 
@@ -516,7 +512,7 @@ def sync_region_subscriptions(
         REGIONS[region['region-name']] = region['region-key']
 
     load_region_subscriptions(neo4j_session, data["RegionSubscriptions"], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_region_subscriptions_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_region_subscriptions_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def sync(

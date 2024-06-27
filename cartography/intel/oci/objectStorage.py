@@ -29,23 +29,27 @@ def sync_buckets(
 
     logger.debug("Syncing Buckets for account '%s'.", current_tenancy_id)
     data = get_bucket_list_data(objectStorage, current_tenancy_id)
-
     namespace = objectStorage.get_namespace().data
 
     for bucket in data['Buckets']:
         bucketResponse = objectStorage.get_bucket(namespace_name=namespace, bucket_name=bucket['name'])
         buckets.append(bucketResponse.data)
 
-    load_buckets(neo4j_session, buckets, current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    final_buckets = utils.oci_object_to_json(buckets)
+
+    load_buckets(neo4j_session, final_buckets, current_tenancy_id, oci_update_tag)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_bucket_list_data(
     objectStorage: oci.object_storage.ObjectStorageClient,
     current_tenancy_id: str,
 ) -> Dict[str, List[Dict[str, Any]]]:
+    
     namespace = objectStorage.get_namespace().data
+
     response = oci.pagination.list_call_get_all_results(objectStorage.list_buckets, namespace_name=namespace, compartment_id=current_tenancy_id)
+
     return {'Buckets': utils.oci_object_to_json(response.data)}
 
 def load_buckets(
@@ -57,7 +61,7 @@ def load_buckets(
     ingest_bucket = """
     MERGE(inode:OCIBucket{ocid: $OCID})
     ON CREATE SET inode:OCIBucket, inode.firstseen = timestamp(),
-    inode.createdate =  $CREATE_DATE
+    inode.createdate =  $CREATE_DATE, inode.tags = $TAGS
     SET inode.name = $NAME
     WITH inode
     MATCH (aa:OCITenancy{ocid: $OCI_TENANCY_ID})
@@ -66,19 +70,33 @@ def load_buckets(
 
 
     for bucket in buckets:
+        # tag_list = utils.extract_namespace_tags(bucket["defined-tags"])
+        tag_list2 = utils.extract_namespace_tags2(bucket["defined-tags"])
+        # print(type(tag_list2))
+        # print(tag_list2)
+
         neo4j_session.run(
             ingest_bucket,
-            OCID=bucket.id,
-            ETAG=bucket.etag,
-            COMPARTMENT_ID=bucket.compartment_id,
-            # DESCRIPTION=volume_attachment["description"],
-            NAME=bucket.name,
-            CREATE_DATE=bucket.time_created,
+            OCID=bucket["id"],
+            ETAG=bucket["etag"],
+            COMPARTMENT_ID=bucket["compartment-id"],
+            TAGS=tag_list2,
+            NAME=bucket["name"],
+            CREATE_DATE=bucket["time-created"],
+            CREATED_BY=bucket["defined-tags"]["Oracle-Tags"]["CreatedBy"],
             OCI_TENANCY_ID=current_oci_tenancy_id,
             oci_update_tag=oci_update_tag,
         )
 
+        #tags = utils.extract_key_value_pairs((bucket["defined-tags"]))
+        
 
+        for namespace, tagDict in bucket["defined-tags"].items():
+            if namespace == "Oracle-Tags":
+                continue
+            for tag_key, tag_value in tagDict.items():
+                resource_type = "OCIBucket"
+                utils.attach_tag_to_resource(neo4j_session, current_oci_tenancy_id, bucket["id"], resource_type, namespace, tag_key, tag_value)
 
 def sync_oci_policy_bucket_references(
     neo4j_session: neo4j.Session,

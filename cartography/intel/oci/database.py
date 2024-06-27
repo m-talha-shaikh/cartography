@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 #     data = get_database_list_data(database, current_tenancy_id)
 #     # load_databases(neo4j_session, data['Databases'], current_tenancy_id, oci_update_tag)
 
-#     # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+#     # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 # def get_database_list_data(
@@ -89,7 +89,7 @@ def sync_autonomous_databases(
     data = get_autonomous_database_list_data(database, current_tenancy_id)
     load_autonomous_databases(neo4j_session, data['Databases'], current_tenancy_id, oci_update_tag)
 
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_autonomous_database_list_data(

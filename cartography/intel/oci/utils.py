@@ -56,6 +56,62 @@ def get_regions_in_tenancy(neo4j_session: neo4j.Session, tenancy_id: str) -> neo
     return neo4j_session.run(query, OCI_TENANCY_ID=tenancy_id)
 
 
+def attach_tag_to_resource(neo4j_session: neo4j.Session, tenancy_id: str, resource_id: str, resource_type: str,  namespace: str, tag_key: str, tag_value) -> neo4j.Result:
+    tag_id = tag_key + ":" + tag_value
+
+    query = """
+        MERGE(tnode:OCITag{ocid: $OCI_TAG_ID})
+        ON CREATE SET tnode:OCITag, tnode.firstseen = timestamp(),
+        tnode.key = $TAG_KEY, tnode.value = $TAG_VALUE, tnode.namespace = $NAMESPACE
+        SET tnode.name = $OCI_TAG_ID
+        WITH tnode
+        MATCH (aa)
+        WHERE aa.ocid = $OCI_RESOURCE_ID AND labels(aa) = [$RESOURCE_TYPE]
+        MERGE (aa)-[r:TAGGED]->(tnode)
+    """
+    return neo4j_session.run(query, OCI_TAG_ID=tag_id, TAG_KEY=tag_key, TAG_VALUE=tag_value, NAMESPACE=namespace, OCI_RESOURCE_ID=resource_id, RESOURCE_TYPE=resource_type)
+
+# def extract_key_value_pairs(d):
+#     EXLCUDED_TAGS = {"CreatedOn", "CreatedBy"}
+#     results = {}
+#     for key, value in d.items():
+#         if key in EXLCUDED_TAGS:
+#             continue
+#         if isinstance(value, dict):
+#             # If the value is a dictionary, recursively extract key-value pairs from it
+#             results.update(extract_key_value_pairs(value))
+#         else:
+#             results[key] = value
+#     return results
+
+# def extract_namespace_tags(d):
+#     results = []
+#     for namespace, tagDict in d.items():
+#         if namespace == "Oracle-Tags":
+#             continue
+#         results.append({namespace: tagDict})
+#     return results
+
+def extract_namespace_tags2(d):
+    results = []
+    for namespace, tagDict in d.items():
+        if namespace == "Oracle-Tags":
+            continue
+        for key, value in tagDict.items():
+            results.append(str(namespace) + ":" + str(key) + ":" + str(value))
+    return results
+            
+# def extract_namespace_tags(d):
+#     EXLCUDED_TAGS = {"CreatedOn", "CreatedBy"}
+#     results = []
+#     for namespace, tagDict in d.items():
+#         tempDict = {}
+#         for key2, value2 in tagDict.items():
+#             results.append({"namespace" : namespace , key2: value2})
+#     return results
+
+
+
 # Grab list of all security groups in neo4j already populated by network. Need to handle regions for this one.
 def get_security_groups_in_tenancy(
     neo4j_session: neo4j.Session,

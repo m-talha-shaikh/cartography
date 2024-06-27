@@ -24,7 +24,7 @@ def sync_instances(
     logger.debug("Syncing Instances for account '%s'.", current_tenancy_id)
     data = get_instance_list_data(compute, current_tenancy_id)
     load_instances(neo4j_session, data['Instances'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_instance_list_data(
@@ -44,23 +44,37 @@ def load_instances(
     ingest_instance = """
     MERGE(inode:OCIInstance{ocid: $OCID})
     ON CREATE SET inode:OCIInstance, inode.firstseen = timestamp(),
-    inode.createdate =  $CREATE_DATE
+    inode.createdate =  $CREATE_DATE, inode.tags = $TAGS
     WITH inode
     MATCH (aa:OCITenancy{ocid: $OCI_TENANCY_ID})
     MERGE (aa)-[r:RESOURCE]->(inode)    
     """
 
+    
 
     for instance in instances:
+
+        # tag_list = utils.extract_namespace_tags(instance["defined-tags"])
+
+        tag_list2 = utils.extract_namespace_tags2(instance["defined-tags"])
+
         neo4j_session.run(
             ingest_instance,
             OCID=instance["id"],
             COMPARTMENT_ID=instance["compartment-id"],
-            # DESCRIPTION=volume_attachment["description"],
+            TAGS=tag_list2,
             CREATE_DATE=instance["time-created"],
+            CREATED_BY=instance["defined-tags"]["Oracle-Tags"]["CreatedBy"],
             OCI_TENANCY_ID=current_oci_tenancy_id,
             oci_update_tag=oci_update_tag,
         )
+
+        for namespace, tagDict in instance["defined-tags"].items():
+            if namespace == "Oracle-Tags":
+                continue
+            for tag_key, tag_value in tagDict.items():
+                resource_type = "OCIBucket"
+                utils.attach_tag_to_resource(neo4j_session, current_oci_tenancy_id, instance["id"], resource_type, namespace, tag_key, tag_value)
 
 
 def sync_volume_attachments(
@@ -74,7 +88,7 @@ def sync_volume_attachments(
     logger.debug("Syncing Volume Attachments for account '%s'.", current_tenancy_id)
     data = get_volume_attachment_list_data(compute, current_tenancy_id)
     load_volume_attachments(neo4j_session, data['VolumeAttachments'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 def load_volume_attachments(
     neo4j_session: neo4j.Session,
@@ -150,7 +164,7 @@ def sync_vnic_attachments(
     logger.debug("Syncing Vnic Attachments for account '%s'.", current_tenancy_id)
     data = get_vnic_attachment_list_data(compute, current_tenancy_id)
     # load_vnic_attachments(neo4j_session, data['VnicAttachments'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_vnic_attachment_list_data(
@@ -173,7 +187,7 @@ def sync_compute_clusters(
     logger.debug("Syncing Compute Clusters for account '%s'.", current_tenancy_id)
     data = get_compute_cluster_list_data(compute, current_tenancy_id)
     # load_compute_clusters(neo4j_session, data['ComputeClusters'], current_tenancy_id, oci_update_tag)
-    # run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
+    # #run_cleanup_job('oci_import_users_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def get_compute_cluster_list_data(

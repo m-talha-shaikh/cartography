@@ -105,7 +105,8 @@ def load_oci_accounts(
 
 
 def cleanup(neo4j_session: neo4j.Session, common_job_parameters: Dict[str, Any]) -> None:
-    run_cleanup_job('oci_tenancy_cleanup.json', neo4j_session, common_job_parameters)
+    print("")
+    #run_cleanup_job('oci_tenancy_cleanup.json', neo4j_session, common_job_parameters)
 
 
 def sync(
