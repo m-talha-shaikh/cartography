@@ -101,14 +101,14 @@ def extract_namespace_tags2(d):
             results.append(str(namespace) + ":" + str(key) + ":" + str(value))
     return results
             
-# def extract_namespace_tags(d):
-#     EXLCUDED_TAGS = {"CreatedOn", "CreatedBy"}
-#     results = []
-#     for namespace, tagDict in d.items():
-#         tempDict = {}
-#         for key2, value2 in tagDict.items():
-#             results.append({"namespace" : namespace , key2: value2})
-#     return results
+def extract_namespace_tags(d):
+    EXLCUDED_TAGS = {"CreatedOn", "CreatedBy"}
+    results = []
+    for namespace, tagDict in d.items():
+        tempDict = {}
+        for key2, value2 in tagDict.items():
+            results.append({"namespace" : namespace , key2: value2})
+    return results
 
 
 

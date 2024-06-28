@@ -70,7 +70,7 @@ def load_buckets(
 
 
     for bucket in buckets:
-        # tag_list = utils.extract_namespace_tags(bucket["defined-tags"])
+        tag_list = utils.extract_namespace_tags(bucket["defined-tags"])
         tag_list2 = utils.extract_namespace_tags2(bucket["defined-tags"])
         # print(type(tag_list2))
         # print(tag_list2)
@@ -80,7 +80,7 @@ def load_buckets(
             OCID=bucket["id"],
             ETAG=bucket["etag"],
             COMPARTMENT_ID=bucket["compartment-id"],
-            TAGS=tag_list2,
+            TAGS=str(tag_list),
             NAME=bucket["name"],
             CREATE_DATE=bucket["time-created"],
             CREATED_BY=bucket["defined-tags"]["Oracle-Tags"]["CreatedBy"],

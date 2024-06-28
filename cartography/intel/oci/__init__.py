@@ -22,9 +22,11 @@ from . import compute
 from . import block
 from . import objectStorage
 from . import database
+from . import loadBalancer
+from . import gateway
 
 logger = logging.getLogger(__name__)
-Resources = namedtuple('Resources', 'compute iam network block objectStorage database')
+Resources = namedtuple('Resources', 'compute iam network block objectStorage database gateway loadBalancer')
 
 
 def _sync_one_account(
@@ -61,6 +63,16 @@ def _sync_one_account(
         database.sync(neo4j_session, resources.database,
           tenancy_id, region["name"], oci_sync_tag, common_job_parameters
         )
+
+        gateway.sync(neo4j_session, resources.gateway,
+          tenancy_id, region["name"], oci_sync_tag, common_job_parameters
+        )
+
+        loadBalancer.sync(neo4j_session, resources.loadBalancer,
+          tenancy_id, region["name"], oci_sync_tag, common_job_parameters
+        )
+
+        
 
     # Look into adding once DNS records are implemented.
     # NOTE clean up all DNS records, regardless of which job created them
@@ -155,6 +167,24 @@ def _get_database_resource(credentials: Dict[str, Any]) -> oci.database.Database
     """
     return oci.database.DatabaseClient(credentials)
 
+def _get_api_gateway_resource(credentials: Dict[str, Any]) -> oci.apigateway.GatewayClient:
+    """
+    Instantiates a OCI DatabaseClient resource object to call the Block Databse API. This is used to pull zone, instance, and
+    networking data. https://docs.oracle.com/en-us/iaas/Content/Database/home.htm.
+    :param credentials: The OCI Credentials object
+    :return: A DatabaseClient resource object
+    """
+    return oci.apigateway.GatewayClient(credentials)
+
+def _get_load_balancer_resource(credentials: Dict[str, Any]) -> oci.database.DatabaseClient:
+    """
+    Instantiates a OCI DatabaseClient resource object to call the Block Databse API. This is used to pull zone, instance, and
+    networking data. https://docs.oracle.com/en-us/iaas/Content/Database/home.htm.
+    :param credentials: The OCI Credentials object
+    :return: A DatabaseClient resource object
+    """
+    return oci.load_balancer.LoadBalancerClient(credentials)
+
 def _initialize_resources(credentials: Dict[str, Any]) -> Resources:
     """
     Create namedtuple of all resource objects necessary for OCI data gathering.
@@ -168,6 +198,8 @@ def _initialize_resources(credentials: Dict[str, Any]) -> Resources:
         block=_get_block_resource(credentials),
         objectStorage=_get_objectStorage_resource(credentials),
         database=_get_database_resource(credentials),
+        gateway=_get_api_gateway_resource(credentials),
+        loadBalancer=_get_load_balancer_resource(credentials),
     )
 
 
